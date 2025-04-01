@@ -183,3 +183,63 @@ class PasswordResetConfirmSerializer(serializers.Serializer):
         user.otp_created_at = None
         user.save()
         return user
+
+class UserProfileUpdateSerializer(serializers.ModelSerializer):
+    """
+    Serializer for updating the user profile.
+    Allows updating name, email, username, phone_number, image, and password.
+    When a new password is provided, both 'password' and 'confirm_password'
+    are required and must match. Uniqueness of email, username, and phone_number is enforced.
+    """
+    password = serializers.CharField(
+        write_only=True, required=False, style={'input_type': 'password'}
+    )
+    confirm_password = serializers.CharField(
+        write_only=True, required=False, style={'input_type': 'password'}
+    )
+    
+    class Meta:
+        model = get_user_model()
+        fields = ['name', 'email', 'username', 'phone_number', 'image', 'password', 'confirm_password']
+
+    def validate_email(self, value):
+        user = self.instance
+        if get_user_model().objects.exclude(pk=user.pk).filter(email=value).exists():
+            raise serializers.ValidationError("This email is already in use by another account.")
+        return value
+
+    def validate_phone_number(self, value):
+        user = self.instance
+        if get_user_model().objects.exclude(pk=user.pk).filter(phone_number=value).exists():
+            raise serializers.ValidationError("This phone number is already in use by another account.")
+        return value
+
+    def validate_username(self, value):
+        user = self.instance
+        if get_user_model().objects.exclude(pk=user.pk).filter(username=value).exists():
+            raise serializers.ValidationError("This username is already in use by another account.")
+        return value
+
+    def validate(self, attrs):
+        password = attrs.get('password')
+        confirm_password = attrs.get('confirm_password')
+        if password or confirm_password:
+            if password != confirm_password:
+                raise serializers.ValidationError({"password": "Password and confirm password do not match."})
+            # Validate the password complexity if provided.
+            validatePasswordComplexity(password)
+        return attrs
+
+    def update(self, instance, validated_data):
+        """
+        Update the user instance with the provided data.
+        If a new password is provided, it is set securely.
+        """
+        password = validated_data.pop('password', None)
+        validated_data.pop('confirm_password', None)
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
+        if password:
+            instance.set_password(password)
+        instance.save()
+        return instance
