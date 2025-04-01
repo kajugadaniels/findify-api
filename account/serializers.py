@@ -124,3 +124,62 @@ class PasswordResetRequestSerializer(serializers.Serializer):
         if not User.objects.filter(email=value).exists():
             raise serializers.ValidationError("No user found with this email address.")
         return value
+
+class PasswordResetConfirmSerializer(serializers.Serializer):
+    email = serializers.EmailField(
+        help_text="Enter your email address."
+    )
+    otp = serializers.CharField(
+        max_length=5,
+        help_text="Enter the 5-digit OTP sent to your email."
+    )
+    new_password = serializers.CharField(
+        write_only=True,
+        help_text="Enter your new password."
+    )
+    confirm_new_password = serializers.CharField(
+        write_only=True,
+        help_text="Confirm your new password."
+    )
+
+    def validate(self, attrs):
+        """
+        Validates OTP, new password match, and ensures the new password meets complexity requirements.
+        """
+        email = attrs.get('email')
+        otp = attrs.get('otp')
+        new_password = attrs.get('new_password')
+        confirm_new_password = attrs.get('confirm_new_password')
+
+        if new_password != confirm_new_password:
+            raise serializers.ValidationError("New password and confirm password do not match.")
+
+        # Validate new password complexity
+        validatePasswordComplexity(new_password)
+
+        User = get_user_model()
+        try:
+            user = User.objects.get(email=email)
+        except User.DoesNotExist:
+            raise serializers.ValidationError("No user found with this email address.")
+
+        if user.reset_otp != otp:
+            raise serializers.ValidationError("Invalid OTP provided.")
+
+        if user.otp_created_at:
+            if timezone.now() - user.otp_created_at > timedelta(minutes=10):
+                raise serializers.ValidationError("OTP has expired. Please request a new one.")
+        else:
+            raise serializers.ValidationError("OTP was not generated. Please request a new one.")
+
+        attrs['user'] = user
+        return attrs
+
+    def save(self, **kwargs):
+        user = self.validated_data['user']
+        new_password = self.validated_data['new_password']
+        user.set_password(new_password)
+        user.reset_otp = ""
+        user.otp_created_at = None
+        user.save()
+        return user
