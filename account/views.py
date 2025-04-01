@@ -58,3 +58,53 @@ class LogoutView(APIView):
             return Response({
                 "detail": "Invalid or expired token."
             }, status=status.HTTP_400_BAD_REQUEST)
+
+class RegisterView(APIView):
+    def post(self, request, *args, **kwargs):
+        """
+        Handle user registration. If the username is not provided,
+        generate a unique username from the user's name. Upon successful registration,
+        send a welcome email to the user's registered email address.
+        """
+        serializer = RegisterUserSerializer(data=request.data)
+        if serializer.is_valid():
+            data = serializer.validated_data.copy()
+            # Generate unique username if not provided
+            if not data.get('username'):
+                base_username = slugify(data.get('name')) if data.get('name') else "user"
+                username = base_username
+                while User.objects.filter(username=username).exists():
+                    username = f"{base_username}-{random.randint(1000, 9999)}"
+                data['username'] = username
+            else:
+                base_username = data['username']
+                username = base_username
+                while User.objects.filter(username=username).exists():
+                    username = f"{base_username}{random.randint(1000, 9999)}"
+                data['username'] = username
+
+            # Create the user with the updated, unique username.
+            user = serializer.create(data)
+
+            # Send welcome email upon successful registration.
+            subject = "Welcome to Findify!"
+            message = f"Hi {user.name or 'there'}, welcome to Findify. We're thrilled to have you on board."
+            from_email = None  # Uses DEFAULT_FROM_EMAIL from settings if set.
+            recipient_list = [user.email]
+            send_mail(subject, message, from_email, recipient_list)
+
+            return Response({
+                "detail": "User registered successfully.",
+                "user": {
+                    "id": user.id,
+                    "name": user.name,
+                    "email": user.email,
+                    "username": user.username,
+                    "phone_number": user.phone_number,
+                }
+            }, status=status.HTTP_201_CREATED)
+
+        return Response({
+            "detail": "Registration failed. Please check the errors for details.",
+            "errors": serializer.errors
+        }, status=status.HTTP_400_BAD_REQUEST)
