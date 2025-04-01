@@ -1,0 +1,10 @@
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@100..900&display=swap');
+
+.main-sidebar {
+    background-color: #050B20;
+}
+
+/* Apply the Prompt font */
+body, .content-wrapper, .main-sidebar, .main-sidebar .sidebar, .main-sidebar .sidebar-menu, .main-sidebar .sidebar-menu .treeview-menu {
+    font-family: "Outfit", serif;
+}

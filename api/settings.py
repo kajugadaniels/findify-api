@@ -224,10 +224,10 @@ EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD')
 CONTACT_EMAIL = 'nexcoderwa@gmail.com'
 
 JAZZMIN_SETTINGS = {
-    "site_title": "UpLink",
-    "site_header": "UpLink",
-    "site_brand": "UpLink",
-    "welcome_sign": "Welcome Admin",
+    "site_title": "Findify",
+    "site_header": "Findify",
+    "site_brand": "Findify",
+    "welcome_sign": "Findify Welcome Admin",
     "show_sidebar": True,
     "navigation_expanded": True,
     "order_with_respect_to": ["auth", "books", "books.author", "books.book"],
