@@ -58,3 +58,58 @@ class LoginSerializer(serializers.Serializer):
         attrs['access'] = str(refresh.access_token)
 
         return attrs
+
+class RegisterUserSerializer(serializers.ModelSerializer):
+    confirm_password = serializers.CharField(write_only=True)
+
+    class Meta:
+        model = get_user_model()
+        fields = [
+            'name', 
+            'email', 
+            'username', 
+            'phone_number', 
+            'image', 
+            'password', 
+            'confirm_password'
+        ]
+        extra_kwargs = {
+            'password': {'write_only': True},
+            'username': {'required': False},
+        }
+
+    def validate_email(self, value):
+        if get_user_model().objects.filter(email=value).exists():
+            raise serializers.ValidationError("A user with this email already exists. Please use a different email address.")
+        return value
+
+    def validate_phone_number(self, value):
+        if get_user_model().objects.filter(phone_number=value).exists():
+            raise serializers.ValidationError("A user with this phone number already exists. Please use a different phone number.")
+        return value
+
+    def validate(self, attrs):
+        """
+        Validates that the password and confirm_password match and that the password meets complexity requirements.
+        """
+        password = attrs.get('password')
+        confirm_password = attrs.get('confirm_password')
+
+        if password != confirm_password:
+            raise serializers.ValidationError({"password": "Password and confirm password do not match. Please re-enter them."})
+
+        # Validate password complexity
+        validatePasswordComplexity(password)
+        return attrs
+
+    def create(self, validated_data):
+        validated_data.pop('confirm_password')
+        user = get_user_model().objects.create_user(
+            email=validated_data.get('email'),
+            name=validated_data.get('name'),
+            username=validated_data.get('username'),
+            phone_number=validated_data.get('phone_number'),
+            image=validated_data.get('image'),
+            password=validated_data.get('password')
+        )
+        return user
