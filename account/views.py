@@ -64,12 +64,13 @@ class RegisterView(APIView):
         """
         Handle user registration. If the username is not provided,
         generate a unique username from the user's name. Upon successful registration,
-        send a welcome email to the user's registered email address.
+        send a welcome email to the user's registered email address and log the user in
+        by generating JWT tokens (access and refresh).
         """
         serializer = RegisterUserSerializer(data=request.data)
         if serializer.is_valid():
             data = serializer.validated_data.copy()
-            # Generate unique username if not provided
+            # Generate unique username if not provided.
             if not data.get('username'):
                 base_username = slugify(data.get('name')) if data.get('name') else "user"
                 username = base_username
@@ -93,15 +94,21 @@ class RegisterView(APIView):
             recipient_list = [user.email]
             send_mail(subject, message, from_email, recipient_list)
 
+            # Automatically generate JWT tokens for the new user.
+            refresh = RefreshToken.for_user(user)
+
             return Response({
                 "detail": "User registered successfully.",
                 "user": {
                     "id": user.id,
+                    "role": user.role,
                     "name": user.name,
                     "email": user.email,
                     "username": user.username,
                     "phone_number": user.phone_number,
-                }
+                },
+                "access": str(refresh.access_token),
+                "refresh": str(refresh)
             }, status=status.HTTP_201_CREATED)
 
         return Response({

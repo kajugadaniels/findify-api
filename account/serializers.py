@@ -65,6 +65,7 @@ class RegisterUserSerializer(serializers.ModelSerializer):
     class Meta:
         model = get_user_model()
         fields = [
+            'role',
             'name', 
             'email', 
             'username', 
@@ -107,6 +108,7 @@ class RegisterUserSerializer(serializers.ModelSerializer):
         user = get_user_model().objects.create_user(
             email=validated_data.get('email'),
             name=validated_data.get('name'),
+            role=validated_data.get('role'),
             username=validated_data.get('username'),
             phone_number=validated_data.get('phone_number'),
             image=validated_data.get('image'),
