@@ -202,6 +202,58 @@ class ProfileUpdateView(APIView):
             "errors": serializer.errors
         }, status=status.HTTP_400_BAD_REQUEST)
 
+class UpdatePasswordView(APIView):
+    """
+    This view handles password change for the logged-in user.
+    After successfully changing the password, the user will be logged out (by blacklisting the refresh token, if provided).
+    """
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, *args, **kwargs):
+        user = request.user  # Get the currently authenticated user
+        old_password = request.data.get("old_password")
+        new_password = request.data.get("new_password")
+        confirm_new_password = request.data.get("confirm_new_password")
+        refresh_token = request.data.get("refresh_token")  # Optionally send the refresh token
+
+        if not old_password or not new_password or not confirm_new_password:
+            return Response(
+                {"detail": "Old password, new password, and confirmation are required."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # Check if old password is correct
+        if not user.check_password(old_password):
+            return Response(
+                {"detail": "Old password is incorrect."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # Ensure new password and confirmation match
+        if new_password != confirm_new_password:
+            return Response(
+                {"detail": "New password and confirm new password do not match."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # Update the password
+        user.set_password(new_password)
+        user.save()
+
+        # If a refresh token was provided, blacklist it to force logout.
+        if refresh_token:
+            try:
+                token = RefreshToken(refresh_token)
+                token.blacklist()
+            except (TokenError, InvalidToken) as e:
+                # Log error if needed, but continue.
+                pass
+
+        return Response(
+            {"detail": "Password updated successfully. Please log in again."},
+            status=status.HTTP_200_OK
+        )
+
 class PasswordResetRequestView(APIView):
     """
     Initiate the password reset process by sending a 5-digit OTP to the user's email address.
