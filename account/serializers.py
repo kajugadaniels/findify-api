@@ -3,7 +3,9 @@ import re
 from account.models import *
 from django.db.models import Q
 from datetime import timedelta
+from vendor.serializers import *
 from django.utils import timezone
+from personal.serializers import *
 from rest_framework import serializers
 from django.contrib.auth import get_user_model
 from django.core.exceptions import ValidationError
@@ -119,11 +121,33 @@ class RegisterUserSerializer(serializers.ModelSerializer):
 class UserSerializer(serializers.ModelSerializer):
     """
     Serializer for the User data.
-    This will provide detailed user information (the creator of the property).
+    This provides detailed user information and conditionally includes the 
+    extended profile details based on the user's role.
     """
+    extended_profile = serializers.SerializerMethodField()
+
     class Meta:
         model = User
-        fields = ['id', 'role', 'name', 'email', 'phone_number', 'image']
+        fields = ['id', 'role', 'name', 'email', 'phone_number', 'image', 'extended_profile']
+
+    def get_extended_profile(self, obj):
+        """
+        Returns the serialized extended profile data based on the user's role.
+        If the role is 'Personal', it uses PersonalSerializer.
+        If the role is 'Vendor' or 'Wholesaler', it uses VendorSerializer.
+        If no profile exists, returns None.
+        """
+        if obj.role == "Personal":
+            # Try to retrieve the related personal profile using the related_name "personal_profile"
+            personal_profile = getattr(obj, 'personal_profile', None)
+            if personal_profile:
+                return PersonalSerializer(personal_profile).data
+        elif obj.role in ["Vendor", "Wholesaler"]:
+            # Try to retrieve the related vendor profile using the related_name "vendor_profile"
+            vendor_profile = getattr(obj, 'vendor_profile', None)
+            if vendor_profile:
+                return VendorSerializer(vendor_profile).data
+        return None
 
 class PasswordResetRequestSerializer(serializers.Serializer):
     email = serializers.EmailField(
