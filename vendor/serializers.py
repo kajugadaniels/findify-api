@@ -1,6 +1,6 @@
 from vendor.models import *
+from account.serializers import *
 from rest_framework import serializers
-from account.serializers import UserSerializer
 
 class VendorSerializer(serializers.ModelSerializer):
     user = UserSerializer(read_only=True)
