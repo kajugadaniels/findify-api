@@ -5,14 +5,14 @@ from personal.serializers import *
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from django.shortcuts import get_object_or_404
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import IsAuthenticated, AllowAny
 
 class PersonalProfileUpdateView(APIView):
     """
     View to update personal profile using user ID.
     Only authenticated users can access.
     """
-    permission_classes = [IsAuthenticated]
+    permission_classes = [AllowAny]
 
     def put(self, request, user_id, *args, **kwargs):
         user = get_object_or_404(User, pk=user_id, role='Personal')
