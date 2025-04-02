@@ -15,7 +15,6 @@ class User(AbstractBaseUser, PermissionsMixin):
     ROLE_CHOICES = (
         ('Personal', 'Personal'),
         ('Vendor', 'Vendor'),
-        ('Wholesaler', 'Wholesaler'),
     )
 
     name = models.CharField(max_length=255, null=True, blank=True)
