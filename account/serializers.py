@@ -1,11 +1,11 @@
 import os
 import re
+from vendor.models import *
 from account.models import *
+from personal.models import *
 from django.db.models import Q
 from datetime import timedelta
-from vendor.serializers import *
 from django.utils import timezone
-from personal.serializers import *
 from rest_framework import serializers
 from django.contrib.auth import get_user_model
 from django.core.exceptions import ValidationError
@@ -117,6 +117,19 @@ class RegisterUserSerializer(serializers.ModelSerializer):
             password=validated_data.get('password')
         )
         return user
+
+class VendorSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Vendor
+        fields = ['id', 'company_name', 'tin_number', 'business_type', 'email', 'phone', 'website', 'address', 'country', 'district', 'sector', 'cell', 'village', 'is_verified', 'created_at', 'updated_at']
+        read_only_fields = ['is_verified', 'created_at', 'updated_at']
+
+class PersonalSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Personal
+        fields = ['id', 'id_number', 'bio', 'country', 'district', 'sector', 'cell', 'village', 'date_of_birth', 'gender', 'profile_completed', 'created_at', 'updated_at']
+        read_only_fields = ['profile_completed', 'created_at', 'updated_at']
+
 
 class UserSerializer(serializers.ModelSerializer):
     """
