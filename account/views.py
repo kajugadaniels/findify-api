@@ -279,6 +279,7 @@ class PasswordResetRequestView(APIView):
             return Response({"detail": "OTP sent to your email address."}, status=status.HTTP_200_OK)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
+
 class PasswordResetConfirmView(APIView):
     """
     Confirm the password reset by validating the OTP and setting the new password.
