@@ -123,7 +123,7 @@ class UserSerializer(serializers.ModelSerializer):
     """
     class Meta:
         model = User
-        fields = ['id', 'name', 'email', 'phone_number', 'image']
+        fields = ['id', 'role', 'name', 'email', 'phone_number', 'image']
 
 class PasswordResetRequestSerializer(serializers.Serializer):
     email = serializers.EmailField(
