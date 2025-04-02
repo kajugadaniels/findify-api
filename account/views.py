@@ -257,13 +257,19 @@ class UpdatePasswordView(APIView):
 class PasswordResetRequestView(APIView):
     """
     Initiate the password reset process by sending a 5-digit OTP to the user's email address.
+    Provides detailed error messages on failure.
     """
     def post(self, request, *args, **kwargs):
         serializer = PasswordResetRequestSerializer(data=request.data)
         if serializer.is_valid():
             email = serializer.validated_data['email']
             User = get_user_model()
-            user = User.objects.get(email=email)
+            try:
+                user = User.objects.get(email=email)
+            except User.DoesNotExist:
+                # This should normally be caught in the serializer, but we double-check.
+                return Response({"detail": "No user found with the provided email address."}, status=status.HTTP_404_NOT_FOUND)
+            
             # Generate a 5-digit OTP
             otp = str(random.randint(10000, 99999))
             user.reset_otp = otp
@@ -272,13 +278,25 @@ class PasswordResetRequestView(APIView):
 
             subject = "Password Reset OTP"
             message = f"Your OTP for password reset is: {otp}"
-            from_email = None  # Uses DEFAULT_FROM_EMAIL from settings if set
+            from_email = None  # Uses DEFAULT_FROM_EMAIL from settings if set.
             recipient_list = [user.email]
-            send_mail(subject, message, from_email, recipient_list)
+
+            try:
+                send_mail(subject, message, from_email, recipient_list)
+            except Exception as e:
+                return Response({
+                    "detail": "Failed to send OTP email.",
+                    "error": str(e)
+                }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
             return Response({"detail": "OTP sent to your email address."}, status=status.HTTP_200_OK)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
+        else:
+            # Construct a detailed error message.
+            error_messages = []
+            for field, messages in serializer.errors.items():
+                error_messages.append(f"{field}: {', '.join(messages)}")
+            error_detail = " ".join(error_messages)
+            return Response({"detail": error_detail}, status=status.HTTP_400_BAD_REQUEST)
 
 class PasswordResetConfirmView(APIView):
     """
