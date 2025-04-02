@@ -302,6 +302,7 @@ class PasswordResetConfirmView(APIView):
     """
     Confirm the password reset by validating the OTP and setting the new password.
     After successfully resetting the password, sends a confirmation email to the user.
+    Provides detailed error messages on failure.
     """
     def post(self, request, *args, **kwargs):
         serializer = PasswordResetConfirmSerializer(data=request.data)
@@ -312,6 +313,18 @@ class PasswordResetConfirmView(APIView):
             message = f"Hi {user.name or 'there'}, your password has been changed successfully. If you did not perform this action, please contact support immediately."
             from_email = None  # Uses DEFAULT_FROM_EMAIL from settings if set.
             recipient_list = [user.email]
-            send_mail(subject, message, from_email, recipient_list)
+            try:
+                send_mail(subject, message, from_email, recipient_list)
+            except Exception as e:
+                return Response({
+                    "detail": "Password reset succeeded but failed to send confirmation email.",
+                    "error": str(e)
+                }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
             return Response({"detail": "Password reset successfully."}, status=status.HTTP_200_OK)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        else:
+            # Build detailed error messages.
+            error_messages = []
+            for field, messages in serializer.errors.items():
+                error_messages.append(f"{field}: {', '.join(messages)}")
+            error_detail = " ".join(error_messages)
+            return Response({"detail": error_detail}, status=status.HTTP_400_BAD_REQUEST)
