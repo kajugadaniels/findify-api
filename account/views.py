@@ -138,7 +138,7 @@ class VerifyTokenView(APIView):
 
             # If token is valid, retrieve user
             user = User.objects.get(id=access_token['user_id'])
-            user_data = UserSerializer(user).data
+            user_data = UserSerializer(user, context={'request': request}).data
 
             return Response({
                 "detail": "Token is valid",
