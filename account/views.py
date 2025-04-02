@@ -109,6 +109,58 @@ class RegisterView(APIView):
             "errors": serializer.errors
         }, status=status.HTTP_400_BAD_REQUEST)
 
+class VerifyTokenView(APIView):
+    """
+    Endpoint to verify the access token and retrieve user details.
+    """
+
+    def get(self, request, *args, **kwargs):
+        """
+        This will check if the access token is valid and return user details.
+        """
+        try:
+            # Retrieve the token from the Authorization header
+            auth_header = request.headers.get('Authorization')
+            if not auth_header:
+                return Response({"detail": "Authorization header missing."}, status=status.HTTP_400_BAD_REQUEST)
+
+            token = auth_header.split(' ')[1]  # Extract token from 'Bearer <token>'
+
+            # Validate the token
+            access_token = AccessToken(token)  # This will check if token is valid and not expired
+
+            # If token is valid, retrieve user
+            user = User.objects.get(id=access_token['user_id'])
+            user_data = UserSerializer(user).data
+
+            return Response({
+                "detail": "Token is valid",
+                "user": user_data
+            }, status=status.HTTP_200_OK)
+
+        except InvalidToken as e:
+            # Token is invalid or expired
+            return Response({
+                "detail": "Invalid or expired token.",
+                "error": str(e)
+            }, status=status.HTTP_401_UNAUTHORIZED)
+        except TokenError as e:
+            # Handle any other token errors
+            return Response({
+                "detail": "Token error.",
+                "error": str(e)
+            }, status=status.HTTP_401_UNAUTHORIZED)
+        except User.DoesNotExist:
+            # If no user is found for the token
+            return Response({
+                "detail": "User associated with this token not found."
+            }, status=status.HTTP_404_NOT_FOUND)
+        except Exception as e:
+            return Response({
+                "detail": "An unexpected error occurred.",
+                "error": str(e)
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
 class ProfileUpdateView(APIView):
     """
     Update the authenticated user's profile details.
