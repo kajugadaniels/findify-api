@@ -114,6 +114,15 @@ class RegisterUserSerializer(serializers.ModelSerializer):
         )
         return user
 
+class UserSerializer(serializers.ModelSerializer):
+    """
+    Serializer for the User data.
+    This will provide detailed user information (the creator of the property).
+    """
+    class Meta:
+        model = User
+        fields = ['id', 'name', 'email', 'phone_number', 'image']
+
 class PasswordResetRequestSerializer(serializers.Serializer):
     email = serializers.EmailField(
         help_text="Enter the email address associated with your account."
